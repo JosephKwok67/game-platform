@@ -1,18 +1,40 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { User } from '@supabase/supabase-js'
 
 export default function AuthButton() {
+  const supabase = createClient()
+  const [user, setUser] = useState<User | null>(null)
+  const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [username, setUsername] = useState('')
+  const [newUsername, setNewUsername] = useState('')
   const [isSignUp, setIsSignUp] = useState(false)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState('')
   const [open, setOpen] = useState(false)
 
-  const supabase = createClient()
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      if (data.user) loadUser(data.user)
+    })
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) loadUser(session.user)
+      else {
+        setUser(null)
+        setUsername('')
+      }
+    })
+    return () => listener.subscription.unsubscribe()
+  }, [])
+
+  const loadUser = async (u: User) => {
+    setUser(u)
+    const { data } = await supabase.from('profiles').select('username').eq('id', u.id).single()
+    setUsername(data?.username || u.email?.split('@')[0] || '玩家')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -20,16 +42,18 @@ export default function AuthButton() {
     setMessage('')
     if (isSignUp) {
       const { data, error } = await supabase.auth.signUp({ email, password })
-      if (error) {
-        setMessage(error.message)
-      } else if (data.user) {
-        await supabase.from('profiles').insert({ id: data.user.id, username: username || email.split('@')[0] })
+      if (error) setMessage(error.message)
+      else if (data.user) {
+        await supabase.from('profiles').insert({ id: data.user.id, username: newUsername || email.split('@')[0] })
         setMessage('注册成功，请查收确认邮件。')
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       if (error) setMessage(error.message)
-      else window.location.reload()
+      else {
+        setOpen(false)
+        window.location.reload()
+      }
     }
     setLoading(false)
   }
@@ -37,6 +61,20 @@ export default function AuthButton() {
   const signOut = async () => {
     await supabase.auth.signOut()
     window.location.reload()
+  }
+
+  if (user) {
+    return (
+      <div className="flex items-center gap-3">
+        <span className="text-sm text-white/70">{username}</span>
+        <button
+          onClick={signOut}
+          className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white transition hover:bg-white/10"
+        >
+          退出
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -50,7 +88,7 @@ export default function AuthButton() {
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-md rounded-2xl border border-white/15 bg-[#140a18]/95 p-6 shadow-[0_0_50px_rgba(255,107,53,0.25)] backdrop-blur-xl">
+          <div className="relative w-full max-w-md rounded-2xl border border-white/15 bg-[#140a18]/95 p-6 shadow-[0_0_50px_rgba(255,107,53,0.25)] backdrop-blur-xl">
             <h2 className="mb-4 text-center text-2xl font-black uppercase tracking-widest text-white drop-shadow-[0_0_10px_#ff6b35]">
               {isSignUp ? '注册账号' : '欢迎回来'}
             </h2>
@@ -59,8 +97,8 @@ export default function AuthButton() {
                 <input
                   type="text"
                   placeholder="昵称"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white placeholder-white/40 outline-none focus:border-[#ff6b35]"
                 />
               )}
