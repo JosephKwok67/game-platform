@@ -1,0 +1,121 @@
+@import "tailwindcss";
+
+:root {
+  --background: #0a0a12;
+  --foreground: #ffffff;
+}
+
+html,
+body {
+  background: radial-gradient(ellipse at top, #1a0b1a 0%, #0f0814 50%, #05050a 100%);
+  color: var(--foreground);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* 科技网格背景 */
+.cyber-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: radial-gradient(circle at center, rgba(0, 0, 0, 1) 25%, transparent 75%);
+  animation: gridPulse 8s ease-in-out infinite;
+}
+
+@keyframes gridPulse {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+
+/* 动态呼吸粒子 */
+.bg-particles {
+  background-image:
+    radial-gradient(circle, rgba(255, 107, 53, 0.22) 1.5px, transparent 1.5px),
+    radial-gradient(circle, rgba(157, 78, 237, 0.22) 1.5px, transparent 1.5px),
+    radial-gradient(circle, rgba(0, 255, 255, 0.16) 1.5px, transparent 1.5px);
+  background-size: 120px 120px, 180px 180px, 240px 240px;
+  background-position: 0 0, 40px 60px, 80px 120px;
+  animation: particleDrift 24s linear infinite;
+  opacity: 0.45;
+}
+
+@keyframes particleDrift {
+  0% { background-position: 0 0, 40px 60px, 80px 120px; }
+  100% { background-position: 120px 120px, 220px 240px, 320px 360px; }
+}
+
+/* 霓虹标题 */
+.neon-title {
+  font-size: clamp(2.5rem, 8vw, 5rem);
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #fff;
+  text-shadow:
+    0 0 5px #fff,
+    0 0 10px #fff,
+    0 0 20px #ff6b35,
+    0 0 40px #ff6b35,
+    0 0 80px #ff6b35,
+    0 0 120px #9d4edd,
+    0 0 160px #9d4edd;
+  animation: neonFlicker 4s infinite alternate;
+}
+
+@keyframes neonFlicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% {
+    text-shadow:
+      0 0 5px #fff,
+      0 0 10px #fff,
+      0 0 20px #ff6b35,
+      0 0 40px #ff6b35,
+      0 0 80px #ff6b35,
+      0 0 120px #9d4edd,
+      0 0 160px #9d4edd;
+    opacity: 1;
+  }
+  20%, 24%, 55% {
+    text-shadow:
+      0 0 2px #fff,
+      0 0 5px #ff6b35,
+      0 0 10px #ff6b35;
+    opacity: 0.85;
+  }
+}
+
+/* 毛玻璃卡片 */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.045);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+/* D-pad 按钮 */
+.dpad-btn {
+  width: 58px;
+  height: 58px;
+  border-radius: 16px;
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.2), rgba(157, 78, 237, 0.15));
+  border: 2px solid rgba(255, 107, 53, 0.4);
+  color: #ff9e00;
+  cursor: pointer;
+  transition: all 0.1s;
+  padding: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.dpad-btn:active {
+  transform: scale(0.92);
+  background: linear-gradient(135deg, rgba(255, 107, 53, 0.4), rgba(157, 78, 237, 0.3));
+  box-shadow: 0 0 20px rgba(255, 107, 53, 0.4);
+}
