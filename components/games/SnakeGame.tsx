@@ -60,6 +60,7 @@ export default function SnakeGame({
   const [controlMode, setControlMode] = useState<MobileControl>('swipe')
   const [isTouch, setIsTouch] = useState(false)
   const [joystickActive, setJoystickActive] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'saved' | 'guest' | 'error' | null>(null)
   const joystickOriginRef = useRef({ x: 0, y: 0 })
   const joystickTouchIdRef = useRef<number | null>(null)
 
@@ -350,6 +351,7 @@ export default function SnakeGame({
     pausedRef.current = false
     setPaused(false)
     setIsGameOver(false)
+    setSaveStatus(null)
     endlessDifficultyRef.current = difficulty
 
     if (gameMode === 'level') {
@@ -472,14 +474,32 @@ export default function SnakeGame({
     localStorage.setItem('snakeHighScore', String(hs))
 
     if (userId) {
-      const supabase = createClient()
-      await supabase.from('scores').insert({
-        user_id: userId,
-        game: 'snake',
-        mode: gameMode === 'endless' ? endlessDifficultyRef.current : `level-${levelRef.current}`,
-        score: scoreRef.current,
-        level: levelRef.current,
-      })
+      try {
+        const supabase = createClient()
+        const { error } = await supabase.from('scores').insert({
+          user_id: userId,
+          game: 'snake',
+          mode: gameMode === 'endless' ? endlessDifficultyRef.current : `level-${levelRef.current}`,
+          score: scoreRef.current,
+          level: levelRef.current,
+        })
+        if (error) {
+          console.error('分数上传失败:', error)
+          setSaveStatus('error')
+        } else {
+          setSaveStatus('saved')
+        }
+      } catch (e) {
+        console.error('分数上传异常:', e)
+        setSaveStatus('error')
+      }
+    } else {
+      // 未登录时存到本地榜单
+      const local = JSON.parse(localStorage.getItem('snakeLocalScores') || '[]')
+      local.push({ score: scoreRef.current, mode: gameMode, date: new Date().toLocaleDateString() })
+      local.sort((a: any, b: any) => b.score - a.score)
+      localStorage.setItem('snakeLocalScores', JSON.stringify(local.slice(0, 20)))
+      setSaveStatus('guest')
     }
     onGameOver?.(scoreRef.current)
   }
@@ -706,9 +726,12 @@ export default function SnakeGame({
           </div>
         )}
         {isGameOver && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-black/70">
+          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-black/80 p-4 text-center">
             <h2 className="mb-2 text-3xl font-bold text-[#ff9e00]">游戏结束</h2>
-            <p className="mb-4 text-white">得分: {score}</p>
+            <p className="mb-2 text-xl text-white">得分: {score}</p>
+            {saveStatus === 'saved' && <p className="mb-4 text-sm text-green-400">✓ 分数已保存到排行榜</p>}
+            {saveStatus === 'guest' && <p className="mb-4 text-sm text-[#ff9e00]">未登录：分数已存到本地，登录后可上传</p>}
+            {saveStatus === 'error' && <p className="mb-4 text-sm text-red-400">上传失败，请检查 Supabase 配置或网络</p>}
             <button
               onClick={restartGame}
               className="rounded-lg bg-gradient-to-r from-[#ff6b35] to-[#9d4edd] px-6 py-2 font-bold text-white shadow-lg"
