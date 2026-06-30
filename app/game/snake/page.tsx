@@ -34,7 +34,7 @@ export default async function SnakePage({ searchParams }: Props) {
         <SnakeGame
           userId={user?.id}
           gameMode="endless"
-          difficulty={(difficulty as any) || 'easy'}
+          difficulty={['easy', 'medium', 'hard'].includes(difficulty || '') ? (difficulty as any) : 'easy'}
         />
       )}
     </main>
