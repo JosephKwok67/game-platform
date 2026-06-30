@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 
+interface FriendRow {
+  id: string
+  user_id: string
+  friend_id: string
+  status: string
+}
+
 interface Friend {
   id: string
   username: string
@@ -28,20 +35,29 @@ export default function FriendsPage() {
   }, [])
 
   const loadFriends = async (uid: string) => {
-    const { data: sent } = await supabase
-      .from('friendships')
-      .select('id, friend_id, status, profiles!friendships_friend_id_fkey(username)')
-      .eq('user_id', uid)
-    const { data: received } = await supabase
-      .from('friendships')
-      .select('id, user_id, status, profiles!friendships_user_id_fkey(username)')
-      .eq('friend_id', uid)
-      .eq('status', 'pending')
+    const [{ data: sent }, { data: received }] = await Promise.all([
+      supabase.from('friendships').select('id, friend_id, status').eq('user_id', uid),
+      supabase.from('friendships').select('id, user_id, status').eq('friend_id', uid).eq('status', 'pending'),
+    ])
+
+    const profileIds = [
+      ...(sent || []).map((f: any) => f.friend_id),
+      ...(received || []).map((f: any) => f.user_id),
+    ]
+    const { data: profiles } =
+      profileIds.length > 0
+        ? await supabase.from('profiles').select('id, username').in('id', profileIds)
+        : { data: [] }
+    const usernameById = Object.fromEntries((profiles || []).map((p: any) => [p.id, p.username]))
 
     const accepted = (sent || [])
       .filter((f: any) => f.status === 'accepted')
-      .map((f: any) => ({ id: f.id, username: f.profiles?.username, status: f.status }))
-    const pending = (received || []).map((f: any) => ({ id: f.id, username: f.profiles?.username, status: f.status }))
+      .map((f: any) => ({ id: f.id, username: usernameById[f.friend_id] || '匿名', status: f.status }))
+    const pending = (received || []).map((f: any) => ({
+      id: f.id,
+      username: usernameById[f.user_id] || '匿名',
+      status: f.status,
+    }))
     setFriends(accepted)
     setRequests(pending)
   }
