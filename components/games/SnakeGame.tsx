@@ -70,6 +70,78 @@ export default function SnakeGame({
 
   const endlessDifficultyRef = useRef<Difficulty>(difficulty)
 
+  // Audio
+  const audioCtxRef = useRef<AudioContext | null>(null)
+  const musicTimerRef = useRef<number | null>(null)
+  const musicPlayingRef = useRef(false)
+  const melodyRef = useRef([261.63, 329.63, 392, 523.25, 392, 329.63, 261.63, 196])
+  const melodyIndexRef = useRef(0)
+
+  const initAudio = () => {
+    if (typeof window === 'undefined') return
+    if (!audioCtxRef.current) {
+      const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext
+      if (!AudioContextClass) return
+      audioCtxRef.current = new AudioContextClass()
+    }
+    const ctx = audioCtxRef.current
+    if (ctx && ctx.state === 'suspended') {
+      ctx.resume()
+    }
+  }
+
+  const playTone = (freq: number, type: OscillatorType, duration: number, volume: number) => {
+    if (!audioCtxRef.current) return
+    const ctx = audioCtxRef.current
+    const osc = ctx.createOscillator()
+    const gain = ctx.createGain()
+    osc.type = type
+    osc.frequency.setValueAtTime(freq, ctx.currentTime)
+    gain.gain.setValueAtTime(volume, ctx.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration)
+    osc.connect(gain)
+    gain.connect(ctx.destination)
+    osc.start()
+    osc.stop(ctx.currentTime + duration)
+  }
+
+  const playEatSound = () => {
+    playTone(880, 'sine', 0.08, 0.1)
+    setTimeout(() => playTone(1100, 'sine', 0.1, 0.08), 40)
+  }
+
+  const playGameOverSound = () => {
+    playTone(200, 'sawtooth', 0.4, 0.12)
+    setTimeout(() => playTone(150, 'sawtooth', 0.5, 0.12), 200)
+    setTimeout(() => playTone(100, 'sawtooth', 0.6, 0.12), 400)
+  }
+
+  const playRespawnSound = () => {
+    playTone(440, 'sine', 0.1, 0.1)
+    setTimeout(() => playTone(660, 'sine', 0.15, 0.1), 100)
+  }
+
+  const startMusic = () => {
+    if (musicPlayingRef.current) return
+    initAudio()
+    musicPlayingRef.current = true
+    melodyIndexRef.current = 0
+    musicTimerRef.current = window.setInterval(() => {
+      if (!musicPlayingRef.current || pausedRef.current || !runningRef.current) return
+      const freq = melodyRef.current[melodyIndexRef.current % melodyRef.current.length]
+      playTone(freq, 'sine', 0.18, 0.04)
+      melodyIndexRef.current++
+    }, 280)
+  }
+
+  const stopMusic = () => {
+    musicPlayingRef.current = false
+    if (musicTimerRef.current) {
+      clearInterval(musicTimerRef.current)
+      musicTimerRef.current = null
+    }
+  }
+
   useEffect(() => {
     setIsTouch('ontouchstart' in window || (navigator.maxTouchPoints ?? 0) > 0)
   }, [])
@@ -87,9 +159,22 @@ export default function SnakeGame({
 
     return () => {
       if (loopRef.current) clearInterval(loopRef.current)
+      stopMusic()
+      if (audioCtxRef.current) audioCtxRef.current.close()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameMode, difficulty, startLevel])
+
+  // 首次用户交互后解锁音频上下文
+  useEffect(() => {
+    const unlock = () => initAudio()
+    window.addEventListener('pointerdown', unlock, { once: true })
+    window.addEventListener('keydown', unlock, { once: true })
+    return () => {
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+  }, [])
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
@@ -116,10 +201,12 @@ export default function SnakeGame({
           if (dxRef.current === 0) { nextDxRef.current = GRID_SIZE; nextDyRef.current = 0 }
           break
         case ' ':
+          initAudio()
           togglePause()
           break
         case 'r':
         case 'R':
+          initAudio()
           restartGame()
           break
       }
@@ -172,6 +259,7 @@ export default function SnakeGame({
   }, [isTouch, controlMode])
 
   const handleSwipe = (dx: number, dy: number) => {
+    initAudio()
     if (!runningRef.current || pausedRef.current) return
     if (Math.abs(dx) > Math.abs(dy)) {
       if (Math.abs(dx) >= 22 && dxRef.current === 0) {
@@ -187,6 +275,7 @@ export default function SnakeGame({
   }
 
   const setDirection = (dir: string) => {
+    initAudio()
     if (!runningRef.current || pausedRef.current) return
     if (dir === 'up' && dyRef.current === 0) { nextDxRef.current = 0; nextDyRef.current = -GRID_SIZE }
     if (dir === 'down' && dyRef.current === 0) { nextDxRef.current = 0; nextDyRef.current = GRID_SIZE }
@@ -274,10 +363,12 @@ export default function SnakeGame({
 
     if (loopRef.current) clearInterval(loopRef.current)
     loopRef.current = window.setInterval(gameLoop, getBaseDelay())
+    startMusic()
   }
 
   const restartGame = () => {
     if (gameMode === 'endless' && !endlessDifficultyRef.current) endlessDifficultyRef.current = 'easy'
+    playRespawnSound()
     initGame()
   }
 
@@ -325,6 +416,7 @@ export default function SnakeGame({
       const eaten = foodsRef.current[eatenIdx]
       foodsRef.current.splice(eatenIdx, 1)
       addScore(10 + (gameMode === 'level' ? levelRef.current : 0))
+      playEatSound()
       createParticles(eaten.x, eaten.y, eaten.color)
       spawnFoods(getEndlessFoodCount())
       if (gameMode === 'endless') {
@@ -372,6 +464,8 @@ export default function SnakeGame({
     setPaused(false)
     setIsGameOver(true)
     if (loopRef.current) clearInterval(loopRef.current)
+    stopMusic()
+    playGameOverSound()
 
     const hs = Math.max(highScore, scoreRef.current)
     setHighScore(hs)
@@ -484,6 +578,7 @@ export default function SnakeGame({
     } else {
       pausedRef.current = true
       setPaused(true)
+      stopMusic()
     }
   }
 
@@ -493,8 +588,10 @@ export default function SnakeGame({
     const timer = window.setInterval(() => {
       count--
       if (count > 0) setCountdown(String(count))
-      else if (count === 0) setCountdown('GO!')
-      else {
+      else if (count === 0) {
+        setCountdown('GO!')
+        startMusic()
+      } else {
         clearInterval(timer)
         setCountdown(null)
         pausedRef.current = false
@@ -531,6 +628,7 @@ export default function SnakeGame({
     setJoystickActive(false)
   }
   const updateJoystick = (x: number, y: number) => {
+    initAudio()
     const max = 35
     const dead = 12
     const dx = x - joystickOriginRef.current.x
