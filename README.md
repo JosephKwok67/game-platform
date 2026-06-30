@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Arcade Hub - 赛博朋克小游戏平台
 
-## Getting Started
+基于 **Next.js 16 + TypeScript + Tailwind CSS + Supabase** 的全栈小游戏平台。
 
-First, run the development server:
+## 已完成功能
+
+- 🎮 **游戏大厅**：赛博朋克霓虹风格首页，展示游戏卡片。
+- 🐍 **霓虹贪吃蛇**：移植自原单文件游戏，支持键盘、滑动、箭头按钮、虚拟摇杆。
+- 🔐 **用户系统**：Supabase Auth 邮箱/密码注册登录，用户名资料。
+- 🏆 **全球排行榜**：按游戏展示 TOP 玩家，前三名金银铜高亮。
+- 👥 **好友系统**：搜索用户名添加好友、接受/拒绝请求。
+- 🏠 **实时房间**：创建/加入房间，房主开始游戏，分数通过 Supabase Realtime 实时同步。
+
+## 本地开发
+
+```bash
+cd /Users/joseph/Desktop/game-platform
+npm install
+```
+
+创建 `.env.local`：
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://你的项目.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=你的anon key
+```
+
+在 Supabase SQL Editor 中执行 `database/schema.sql` 创建表、RLS 和 Realtime 订阅。
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+打开 http://localhost:3000。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 部署到 Vercel
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. 在 Vercel 导入 GitHub 仓库 `JosephKwok67/game-platform`。
+2. 在项目设置中添加环境变量：
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+3. 重新部署。
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+> 注意：若需服务端功能（如更严格的 RLS、邀请邮件），可在 Supabase Dashboard 中配置。
