@@ -7,7 +7,7 @@ export default async function LeaderboardPage() {
   const supabase = await createClient()
   const { data: rows } = await supabase
     .from('scores')
-    .select('score, mode, level, created_at, profiles(username)')
+    .select('user_id, score, mode, level, created_at, profiles(username)')
     .eq('game', 'snake')
     .order('score', { ascending: false })
     .limit(200)
@@ -16,6 +16,7 @@ export default async function LeaderboardPage() {
   const bestByUser = new Map<string, any>()
   ;(rows || []).forEach((s: any) => {
     const uid = s.user_id || s.profiles?.username || JSON.stringify(s)
+    if (!uid) return
     if (!bestByUser.has(uid) || s.score > bestByUser.get(uid).score) {
       bestByUser.set(uid, s)
     }
