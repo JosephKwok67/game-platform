@@ -63,6 +63,7 @@ export default function SnakeGame({
   const [isTouch, setIsTouch] = useState(false)
   const [joystickActive, setJoystickActive] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'saved' | 'guest' | 'error' | null>(null)
+  const [showBoard, setShowBoard] = useState(false)
   const joystickOriginRef = useRef({ x: 0, y: 0 })
   const joystickTouchIdRef = useRef<number | null>(null)
 
@@ -670,9 +671,28 @@ export default function SnakeGame({
 
   return (
     <div className="relative flex flex-col items-center">
-      <div className="mb-3 flex items-center gap-3 text-sm text-white/70">
+      {/* 未登录提示：说明分数为什么"保存不了" */}
+      {!userId && (
+        <div className="mb-3 flex w-full max-w-[600px] items-center justify-between gap-3 rounded-xl border border-[#ff9e00]/40 bg-[#ff9e00]/10 px-4 py-2 text-sm text-[#ffd07a]">
+          <span>⚠️ 你正在以「访客」身份游戏，分数<b>不会上传</b>到全球排行榜，仅保存在本机。</span>
+          <a
+            href="/"
+            className="shrink-0 rounded-full border border-[#ff6b35]/60 bg-[#ff6b35]/20 px-3 py-1 text-xs font-semibold text-[#ff9e00] transition hover:bg-[#ff6b35]/30"
+          >
+            去登录 →
+          </a>
+        </div>
+      )}
+
+      <div className="mb-3 flex flex-wrap items-center justify-center gap-3 text-sm text-white/70">
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">🍎 得分: {score}</span>
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">👑 最高: {highScore}</span>
+        <button
+          onClick={() => setShowBoard(true)}
+          className="rounded-full border border-[#ffd700]/40 bg-[#ffd700]/10 px-3 py-1 font-semibold text-[#ffd700] transition hover:bg-[#ffd700]/20"
+        >
+          🏆 排行榜
+        </button>
         {isTouch && (
           <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
             控制: {controlMode === 'swipe' ? '滑动' : controlMode === 'arrows' ? '箭头' : '摇杆'}
@@ -730,12 +750,19 @@ export default function SnakeGame({
             <h2 className="mb-1 text-2xl font-bold text-[#ff9e00]">游戏结束</h2>
             <p className="mb-1 text-lg text-white">得分: {score}</p>
             {saveStatus === 'saved' && <p className="mb-2 text-xs text-green-400">✓ 分数已保存到排行榜</p>}
-            {saveStatus === 'guest' && <p className="mb-2 text-xs text-[#ff9e00]">未登录：分数已存到本地</p>}
-            {saveStatus === 'error' && <p className="mb-2 text-xs text-red-400">上传失败，请检查配置</p>}
+            {saveStatus === 'guest' && (
+              <p className="mb-2 text-xs text-[#ff9e00]">
+                未登录：分数仅存本机，
+                <a href="/" className="underline hover:text-[#ffd700]">
+                  登录后可上榜
+                </a>
+              </p>
+            )}
+            {saveStatus === 'error' && <p className="mb-2 text-xs text-red-400">上传失败，请检查网络或稍后再试</p>}
 
-            <div className="mb-3 w-full max-w-[260px]">
+            <div className="mb-3 w-full max-w-[300px]">
               <p className="mb-1 text-xs uppercase tracking-widest text-white/50">🏆 贪吃蛇排行榜</p>
-              <SnakeLeaderboard limit={5} />
+              <SnakeLeaderboard limit={5} currentUserId={userId} />
             </div>
 
             <button
@@ -762,6 +789,30 @@ export default function SnakeGame({
           重新开始
         </button>
       </div>
+
+      {/* 排行榜弹窗（游戏中随时查看） */}
+      {showBoard && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={() => setShowBoard(false)}
+        >
+          <div
+            className="relative w-full max-w-md rounded-2xl border border-white/15 bg-[#140a18]/95 p-5 shadow-[0_0_50px_rgba(255,215,0,0.2)] backdrop-blur-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="mb-3 text-center text-xl font-black tracking-widest text-[#ffd700] drop-shadow-[0_0_10px_#ffd700]">
+              🏆 贪吃蛇排行榜
+            </h3>
+            <SnakeLeaderboard limit={10} currentUserId={userId} />
+            <button
+              onClick={() => setShowBoard(false)}
+              className="absolute right-3 top-3 text-2xl text-white/50 hover:text-white"
+            >
+              ×
+            </button>
+          </div>
+        </div>
+      )}
 
       {isTouch && controlMode === 'joystick' && (
         <div
