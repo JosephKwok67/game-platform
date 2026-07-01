@@ -10,17 +10,28 @@ interface ScoreRow {
   profiles: { username: string } | null
 }
 
-export default function SnakeLeaderboard({ limit = 5 }: { limit?: number }) {
+interface SnakeLeaderboardProps {
+  limit?: number
+  modeFilter?: string
+}
+
+export default function SnakeLeaderboard({ limit = 5, modeFilter }: SnakeLeaderboardProps) {
   const [scores, setScores] = useState<ScoreRow[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const load = async () => {
       const supabase = createClient()
-      const { data } = await supabase
+      let query = supabase
         .from('scores')
         .select('user_id, score, mode, profiles(username)')
         .eq('game', 'snake')
+      
+      if (modeFilter) {
+        query = query.eq('mode', modeFilter)
+      }
+      
+      const { data } = await query
         .order('score', { ascending: false })
         .limit(200)
       const best = new Map<string, ScoreRow>()
@@ -33,7 +44,7 @@ export default function SnakeLeaderboard({ limit = 5 }: { limit?: number }) {
       setLoading(false)
     }
     load()
-  }, [limit])
+  }, [limit, modeFilter])
 
   if (loading) return <p className="text-center text-sm text-white/50">加载中...</p>
   if (scores.length === 0) return <p className="text-center text-sm text-white/50">暂无记录</p>
