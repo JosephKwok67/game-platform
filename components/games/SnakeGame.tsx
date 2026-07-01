@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import SnakeLeaderboard from '@/components/SnakeLeaderboard'
 
 const GRID_SIZE = 20
 const TILE_COUNT = 30
@@ -726,12 +727,18 @@ export default function SnakeGame({
           </div>
         )}
         {isGameOver && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center rounded-xl bg-black/80 p-4 text-center">
-            <h2 className="mb-2 text-3xl font-bold text-[#ff9e00]">游戏结束</h2>
-            <p className="mb-2 text-xl text-white">得分: {score}</p>
-            {saveStatus === 'saved' && <p className="mb-4 text-sm text-green-400">✓ 分数已保存到排行榜</p>}
-            {saveStatus === 'guest' && <p className="mb-4 text-sm text-[#ff9e00]">未登录：分数已存到本地，登录后可上传</p>}
-            {saveStatus === 'error' && <p className="mb-4 text-sm text-red-400">上传失败，请检查 Supabase 配置或网络</p>}
+          <div className="absolute inset-0 flex flex-col items-center justify-center overflow-y-auto rounded-xl bg-black/85 p-4 text-center">
+            <h2 className="mb-1 text-2xl font-bold text-[#ff9e00]">游戏结束</h2>
+            <p className="mb-1 text-lg text-white">得分: {score}</p>
+            {saveStatus === 'saved' && <p className="mb-2 text-xs text-green-400">✓ 分数已保存到排行榜</p>}
+            {saveStatus === 'guest' && <p className="mb-2 text-xs text-[#ff9e00]">未登录：分数已存到本地</p>}
+            {saveStatus === 'error' && <p className="mb-2 text-xs text-red-400">上传失败，请检查配置</p>}
+
+            <div className="mb-3 w-full max-w-[260px]">
+              <p className="mb-1 text-xs uppercase tracking-widest text-white/50">🏆 贪吃蛇排行榜</p>
+              <SnakeLeaderboard limit={5} />
+            </div>
+
             <button
               onClick={restartGame}
               className="rounded-lg bg-gradient-to-r from-[#ff6b35] to-[#9d4edd] px-6 py-2 font-bold text-white shadow-lg"
