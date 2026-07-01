@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
+export const dynamic = 'force-dynamic'
+
 export default async function LeaderboardPage() {
   const supabase = await createClient()
   const { data: rows } = await supabase
@@ -8,9 +10,19 @@ export default async function LeaderboardPage() {
     .select('score, mode, level, created_at, profiles(username)')
     .eq('game', 'snake')
     .order('score', { ascending: false })
-    .limit(50)
+    .limit(200)
 
-  const scores = rows || []
+  // 每个用户只保留最高分
+  const bestByUser = new Map<string, any>()
+  ;(rows || []).forEach((s: any) => {
+    const uid = s.user_id || s.profiles?.username || JSON.stringify(s)
+    if (!bestByUser.has(uid) || s.score > bestByUser.get(uid).score) {
+      bestByUser.set(uid, s)
+    }
+  })
+  const scores = Array.from(bestByUser.values())
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 50)
 
   return (
     <main className="flex min-h-screen flex-col items-center p-6">
