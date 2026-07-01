@@ -13,9 +13,13 @@ interface FriendRow {
 
 interface Friend {
   id: string
+  userId: string
   username: string
   status: string
+  bestScore: number
 }
+
+export const dynamic = 'force-dynamic'
 
 export default function FriendsPage() {
   const supabase = createClient()
@@ -24,6 +28,7 @@ export default function FriendsPage() {
   const [requests, setRequests] = useState<Friend[]>([])
   const [search, setSearch] = useState('')
   const [message, setMessage] = useState('')
+  const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -35,31 +40,47 @@ export default function FriendsPage() {
   }, [])
 
   const loadFriends = async (uid: string) => {
+    setLoading(true)
     const [{ data: sent }, { data: received }] = await Promise.all([
       supabase.from('friendships').select('id, friend_id, status').eq('user_id', uid),
       supabase.from('friendships').select('id, user_id, status').eq('friend_id', uid).eq('status', 'pending'),
     ])
 
-    const profileIds = [
+    const friendIds = [
       ...(sent || []).map((f: any) => f.friend_id),
       ...(received || []).map((f: any) => f.user_id),
     ]
     const { data: profiles } =
-      profileIds.length > 0
-        ? await supabase.from('profiles').select('id, username').in('id', profileIds)
+      friendIds.length > 0
+        ? await supabase.from('profiles').select('id, username').in('id', friendIds)
         : { data: [] }
     const usernameById = Object.fromEntries((profiles || []).map((p: any) => [p.id, p.username]))
 
+    const allFriendIds = [...friendIds]
+    const { data: bestScores } =
+      allFriendIds.length > 0
+        ? await supabase.from('scores').select('user_id, score').eq('game', 'snake').in('user_id', allFriendIds)
+        : { data: [] }
+    const bestByUser: Record<string, number> = {}
+    ;(bestScores || []).forEach((s: any) => {
+      if (!bestByUser[s.user_id] || s.score > bestByUser[s.user_id]) bestByUser[s.user_id] = s.score
+    })
+
+    const makeFriend = (id: string, fid: string, status: string): Friend => ({
+      id,
+      userId: fid,
+      username: usernameById[fid] || '匿名',
+      status,
+      bestScore: bestByUser[fid] || 0,
+    })
+
     const accepted = (sent || [])
       .filter((f: any) => f.status === 'accepted')
-      .map((f: any) => ({ id: f.id, username: usernameById[f.friend_id] || '匿名', status: f.status }))
-    const pending = (received || []).map((f: any) => ({
-      id: f.id,
-      username: usernameById[f.user_id] || '匿名',
-      status: f.status,
-    }))
+      .map((f: any) => makeFriend(f.id, f.friend_id, f.status))
+    const pending = (received || []).map((f: any) => makeFriend(f.id, f.user_id, f.status))
     setFriends(accepted)
     setRequests(pending)
+    setLoading(false)
   }
 
   const addFriend = async () => {
@@ -72,6 +93,18 @@ export default function FriendsPage() {
     }
     if (target.id === userId) {
       setMessage('不能添加自己')
+      return
+    }
+    // 检查是否已经是好友或已发送请求
+    const { data: existing } = await supabase
+      .from('friendships')
+      .select('id, status')
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .or(`user_id.eq.${target.id},friend_id.eq.${target.id}`)
+      .single()
+    if (existing) {
+      if (existing.status === 'accepted') setMessage('你们已经是好友了')
+      else setMessage('好友请求已存在')
       return
     }
     const { error } = await supabase.from('friendships').insert({ user_id: userId, friend_id: target.id })
@@ -139,13 +172,18 @@ export default function FriendsPage() {
         )}
 
         <h3 className="mb-2 text-lg font-bold text-white">我的好友</h3>
-        {friends.length === 0 ? (
+        {loading ? (
+          <p className="text-sm text-white/50">加载中...</p>
+        ) : friends.length === 0 ? (
           <p className="text-sm text-white/50">还没有好友</p>
         ) : (
           <ul className="space-y-2">
             {friends.map((f) => (
               <li key={f.id} className="flex items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-white">
-                {f.username}
+                <div>
+                  <div>{f.username}</div>
+                  <div className="text-xs text-white/50">贪吃蛇最高: <span className="text-[#ff9e00]">{f.bestScore}</span></div>
+                </div>
                 <button onClick={() => reject(f.id)} className="text-sm text-white/50 hover:text-red-400">删除</button>
               </li>
             ))}
