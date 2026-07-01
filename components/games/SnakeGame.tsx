@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { saveScore } from '@/lib/actions'
 import SnakeLeaderboard from '@/components/SnakeLeaderboard'
 
 const GRID_SIZE = 20
@@ -476,19 +477,17 @@ export default function SnakeGame({
 
     if (userId) {
       try {
-        const supabase = createClient()
-        const { error } = await supabase.from('scores').insert({
-          user_id: userId,
+        const result = await saveScore({
           game: 'snake',
           mode: gameMode === 'endless' ? endlessDifficultyRef.current : `level-${levelRef.current}`,
           score: scoreRef.current,
           level: levelRef.current,
         })
-        if (error) {
-          console.error('分数上传失败:', error)
-          setSaveStatus('error')
-        } else {
+        if (result.success) {
           setSaveStatus('saved')
+        } else {
+          console.error('分数上传失败:', result.error)
+          setSaveStatus('error')
         }
       } catch (e) {
         console.error('分数上传异常:', e)
