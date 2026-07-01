@@ -21,13 +21,27 @@ export default async function Home() {
       <p className="mb-8 text-center text-sm uppercase tracking-[0.3em] text-white/50">赛博朋克小游戏平台</p>
 
       <div className="glass-panel w-full max-w-4xl rounded-3xl p-6 md:p-10">
-        <div className="mb-8 flex flex-col items-center justify-between gap-4 md:flex-row">
+        <div className="mb-4 flex flex-col items-center justify-between gap-4 md:flex-row">
           <div>
             <p className="text-xs uppercase tracking-widest text-white/50">当前玩家</p>
             <p className="text-xl font-bold text-[#ff9e00]">{profile?.username || '访客'}</p>
           </div>
           <AuthButton />
         </div>
+
+        {/* 登录引导：说明只有登录后成绩才会上全球排行榜 */}
+        {user ? (
+          <div className="mb-8 rounded-xl border border-[#4ade80]/30 bg-[#4ade80]/10 px-4 py-2.5 text-sm text-[#86efac]">
+            ✅ 已登录，你的游戏成绩会自动上传到全球排行榜，去霸榜吧！
+          </div>
+        ) : (
+          <div className="mb-8 flex flex-col items-center justify-between gap-2 rounded-xl border border-[#ff9e00]/40 bg-[#ff9e00]/10 px-4 py-2.5 text-sm text-[#ffd07a] md:flex-row">
+            <span>
+              💡 你正在以「访客」身份浏览。<b>登录后</b>游戏成绩才会上传到全球排行榜，否则只保存在本机。
+            </span>
+            <span className="shrink-0 text-xs text-white/60">👆 点击右上角登录 / 注册</span>
+          </div>
+        )}
 
         <div className="grid gap-6 md:grid-cols-3">
           <Link
