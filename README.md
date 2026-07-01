@@ -11,6 +11,10 @@
 - 👥 **好友系统**：搜索用户名添加好友、接受/拒绝请求。
 - 🏠 **实时房间**：创建/加入房间，房主开始游戏，分数通过 Supabase Realtime 实时同步。
 
+## 更新日志
+
+- **2026-07-01** — 贪吃蛇排行榜升级 + 访客保存体验修复 + 注册自动建 profile。详见 [docs/2026-07-01-snake-leaderboard-update.md](docs/2026-07-01-snake-leaderboard-update.md)。
+
 ## 本地开发
 
 ```bash
